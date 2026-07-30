@@ -1,6 +1,15 @@
 /* Syoyu 工作台 Service Worker：离线缓存应用外壳，数据仍在本地存储 */
-const CACHE = 'syoyu-v1';
-const ASSETS = ['./', './index.html', './icon.png', './manifest.webmanifest'];
+/* v2：新增多尺寸图标（icon-180/192/512），旧 v1 缓存会在 activate 时自动清除 */
+const CACHE = 'syoyu-v2';
+const ASSETS = [
+  './',
+  './index.html',
+  './icon.png',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png',
+  './manifest.webmanifest'
+];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
