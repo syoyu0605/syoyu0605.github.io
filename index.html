@@ -85,11 +85,19 @@
   .mod-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600;}
   /* 世界时钟 */
   .clock-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  .clock-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;text-align:center;}
-  .clock-card .city{font-size:12px;color:var(--sub);}
-  .clock-card .time{font-size:24px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums;}
-  .clock-card .date{font-size:12px;color:var(--sub);margin-top:2px;}
-  .clock-card .daynight{display:inline-block;margin-top:6px;font-size:11px;padding:1px 8px;border-radius:10px;}
+  .clock-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .clock-card .city{font-size:12px;color:var(--sub);line-height:1.3;}
+  .clock-card .time{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.1;}
+  .clock-card .sec{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums;letter-spacing:3px;line-height:1;}
+  .clock-card .date{font-size:12px;color:var(--sub);line-height:1.3;}
+  .clock-card .daynight{display:inline-block;margin-top:2px;font-size:11px;padding:1px 8px;border-radius:10px;}
+  .gb-clock{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
+  .gb-mod .clock-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .gb-mod .clock-card{padding:10px 6px;gap:3px;}
+  .gb-mod .clock-card .time{font-size:20px;letter-spacing:1px;}
+  .gb-mod .clock-card .sec{font-size:11px;letter-spacing:2px;}
+  .gb-mod .clock-card .city{font-size:11px;}
+  .gb-mod .clock-card .date{font-size:11px;}
   .dn-day{background:var(--blue-bg);color:var(--blue);} .dn-night{background:var(--purple-bg);color:var(--purple);}
   .pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
   .pill{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--line);background:#fff;color:#374151;}
@@ -143,9 +151,14 @@
   .card h3{font-size:14px;flex-wrap:wrap;}
   .grid.g2{grid-template-columns:1fr;}
   .grid.g3,.grid.g4{grid-template-columns:1fr 1fr;}
-  .clock-grid{grid-template-columns:repeat(2,1fr);}
-  .clock-card{padding:10px 6px;}
-  .clock-card .time{font-size:19px;}
+  .grid .dt-col{grid-column:1 / -1;}
+  .clock-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .clock-card{padding:12px 8px;gap:4px;}
+  .clock-card .city{font-size:11px;}
+  .clock-card .time{font-size:22px;letter-spacing:1px;}
+  .clock-card .sec{font-size:12px;letter-spacing:2px;}
+  .clock-card .date{font-size:11px;}
+  .clock-card .daynight{margin-top:3px;}
   .stat-box{padding:10px 12px;}
   .stat-box .val{font-size:18px;}
   .filter-bar>div{min-width:100%;}
@@ -214,8 +227,8 @@
         <div class="grid g3">
           <div><label class="fl"><b>*</b> 病人姓名</label><input id="f-name" list="dl-patients" placeholder="输入姓名，新患者自动建档"><datalist id="dl-patients"></datalist></div>
           <div><label class="fl"><b>*</b> 就诊医院</label><input id="f-hosp" placeholder="如：新宿区立医院"></div>
-          <div><label class="fl"><b>*</b> 开始时间</label><input id="f-start" type="datetime-local"></div>
-          <div><label class="fl"><b>*</b> 截至时间</label><input id="f-end" type="datetime-local"></div>
+          <div class="dt-col"><label class="fl"><b>*</b> 开始时间</label><input id="f-start" type="datetime-local"></div>
+          <div class="dt-col"><label class="fl"><b>*</b> 截至时间</label><input id="f-end" type="datetime-local"></div>
           <div><label class="fl"><b>*</b> 就诊症状</label><input id="f-symp" placeholder="如：发热、腹痛"></div>
           <div><label class="fl"><b>*</b> 就诊金额（元）</label><input id="f-amt" type="number" min="0" step="0.01" placeholder="0.00"></div>
           <div style="display:flex;align-items:flex-end;gap:10px;">
@@ -223,6 +236,32 @@
           </div>
         </div>
         <div class="muted" id="f-preview" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>📥 导入历史出诊表 <span class="muted" style="font-size:12px;font-weight:400">自动识别列 · 导入前预览确认</span></h3>
+        <div class="grid g2">
+          <div>
+            <label class="fl" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">出诊表内容（粘贴或导入文件）
+              <button class="btn btn-sm" type="button" onclick="document.getElementById('vi-file').click()">📎 导入文件</button>
+              <input type="file" id="vi-file" accept=".csv,.txt,.tsv" style="display:none" onchange="importFileTo(this,'vi-text')">
+            </label>
+            <textarea id="vi-text" rows="9" placeholder="粘贴历史出诊表（支持 CSV / TSV / 纯文本）&#10;第一行建议为字段名，如：姓名,就诊医院,开始时间,截至时间,症状,金额"></textarea>
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:6px;font-weight:600">使用说明</div>
+            <ul style="margin:0 0 0 18px;font-size:13px;line-height:1.9;color:var(--sub)">
+              <li>列名自动识别：姓名/患者、就诊医院、开始时间、截至时间、症状、金额</li>
+              <li>时间支持：2024-01-01 09:00、2024/1/1 9:00、2024年1月1日 9:00</li>
+              <li>导入前会预览识别结果，确认无误再写入数据库</li>
+              <li>保险状态与补贴按系统规则自动判定/计算，姓名自动建档</li>
+            </ul>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm btn-p" type="button" onclick="previewImportVisits()">🔍 解析并预览</button>
+          <button class="btn btn-sm" type="button" onclick="clearImportVisits()">清空</button>
+        </div>
       </div>
 
       <div class="grid g4" style="margin-bottom:16px;">
@@ -505,8 +544,14 @@
       <div class="card">
         <h3>📥 上传上月数据 <span style="margin-left:auto;display:flex;gap:8px"><input type="month" id="am-month" style="width:150px"><button class="btn btn-sm btn-p" onclick="saveAmazonData()">保存数据</button></span></h3>
         <div class="grid g2">
-          <div><label class="fl">亚马逊交易汇总表（粘贴）</label><textarea id="am-summary" rows="6" placeholder="粘贴亚马逊交易汇总表内容…"></textarea></div>
-          <div><label class="fl">订单交易明细（粘贴）</label><textarea id="am-detail" rows="6" placeholder="粘贴订单交易明细…"></textarea></div>
+          <div><label class="fl" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">亚马逊交易汇总表
+            <button class="btn btn-sm" type="button" onclick="document.getElementById('am-file-summary').click()">📎 导入文件</button>
+            <input type="file" id="am-file-summary" accept=".csv,.txt,.tsv" style="display:none" onchange="importFileTo(this,'am-summary')">
+          </label><textarea id="am-summary" rows="6" placeholder="粘贴内容，或点「📎 导入文件」选择 .csv/.txt 自动填入…"></textarea></div>
+          <div><label class="fl" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">订单交易明细
+            <button class="btn btn-sm" type="button" onclick="document.getElementById('am-file-detail').click()">📎 导入文件</button>
+            <input type="file" id="am-file-detail" accept=".csv,.txt,.tsv" style="display:none" onchange="importFileTo(this,'am-detail')">
+          </label><textarea id="am-detail" rows="6" placeholder="粘贴内容，或点「📎 导入文件」选择 .csv/.txt 自动填入…"></textarea></div>
         </div>
         <div class="grid g3" style="margin-top:12px">
           <div><label class="fl">总营收(元)</label><input type="number" step="0.01" id="am-rev"></div>
@@ -518,6 +563,10 @@
           <div><label class="fl">其他费用(元)</label><input type="number" step="0.01" id="am-other" value="0"></div>
         </div>
         <div class="muted" style="margin-top:8px" id="am-validate"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-sm btn-p" type="button" onclick="autoParseAmounts()">🔍 自动解析并填充金额</button>
+          <span class="muted">从上方导入/粘贴的文本中自动识别营收、订单数、退款、配送费、佣金、广告费并填入下方</span>
+        </div>
       </div>
       <div class="card">
         <h3>📋 月度报表存档</h3>
@@ -833,6 +882,141 @@ function submitVisit(){
 }
 document.getElementById("f-start").addEventListener("change", previewCalc);
 document.getElementById("f-name").addEventListener("input", previewCalc);
+
+/* ---- 分区一：导入历史出诊表 ---- */
+const VI_FIELDS = [
+  {key:"name", label:"姓名",     keys:["姓名","患者","病人","名字","名前","名称","name","patient"]},
+  {key:"hosp", label:"就诊医院", keys:["医院","就诊医院","病院","机构","hospital","clinic"]},
+  {key:"date", label:"日期",     keys:["日期","日付","診療日","受診日","年月日","就诊日期"]},
+  {key:"start",label:"开始时间", keys:["开始时间","开始","起","具体時間","時間","診療時間","受診時間","受付時間","时间","時刻","出诊时间","就诊时间","start","begin"]},
+  {key:"end",  label:"截至时间", keys:["截至时间","结束时间","结束","止","end","finish"]},
+  {key:"symp", label:"症状",     keys:["症状","诊断","病情","主诉","病名","symptom","diagnosis"]},
+  {key:"amt",  label:"金额",     keys:["金额","费用","收费","就诊金额","实收","amount","fee","price"]}
+];
+function viPad2(n){ n=+n; return (n<10?"0":"")+n; }
+function normalizeDT(s){
+  if(!s) return "";
+  s=(s+"").trim().replace(/[tT]/," ").replace(/年|月/g,"-").replace(/日/g," ").replace(/[./]/g,"-");
+  let m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+  if(m){ const [,y,mo,d,h,mi]=m; return y+"-"+viPad2(mo)+"-"+viPad2(d)+"T"+viPad2(h)+":"+viPad2(mi); }
+  m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){ const [,y,mo,d]=m; return y+"-"+viPad2(mo)+"-"+viPad2(d)+"T00:00"; }
+  return "";
+}
+function viDatePart(s){ const d=normalizeDT(s); return d?d.slice(0,10):""; }
+function viTimePart(s){ const m=(s||"").trim().match(/(\d{1,2}):(\d{2})/); return m?viPad2(m[1])+":"+viPad2(m[2]):""; }
+function splitTimeRange(s){
+  s=(s||"").trim().replace(/：/g,":");
+  let m=s.match(/(\d{1,2}):(\d{2})\s*[-~～—至]\s*(\d{1,2}):(\d{2})/);
+  if(m) return {start:viPad2(m[1])+":"+viPad2(m[2]), end:viPad2(m[3])+":"+viPad2(m[4])};
+  m=s.match(/(\d{1,2}):(\d{2})/);
+  if(m) return {start:viPad2(m[1])+":"+viPad2(m[2]), end:""};
+  return {start:"", end:""};
+}
+function findHeaderRow(lines){
+  let best=-1, bestHit=0;
+  lines.forEach((ln,idx)=>{
+    const cells=splitCells(ln);
+    let hit=0;
+    cells.forEach(c=>{ const low=(c||"").trim().toLowerCase(); if(low && VI_FIELDS.some(f=>f.keys.some(k=>low.includes(k)))) hit++; });
+    if(hit>bestHit){ bestHit=hit; best=idx; }
+  });
+  return best>=0 && bestHit>=2 ? best : 0;
+}
+function splitCells(line){
+  if(line.indexOf("\t")>=0) return line.split("\t").map(x=>x.trim());
+  const comma=(line.match(/，/g)||[]).length+(line.match(/,/g)||[]).length;
+  if(comma>=1) return line.split(/[，,]/).map(x=>x.trim());
+  const semi=(line.match(/；/g)||[]).length+(line.match(/;/g)||[]).length;
+  if(semi>=1) return line.split(/[；;]/).map(x=>x.trim());
+  return [line.trim()];
+}
+function mapHeaders(cells){
+  const map={};
+  cells.forEach((c,i)=>{
+    const low=(c||"").trim().toLowerCase();
+    if(!low) return;
+    VI_FIELDS.forEach(f=>{ if(map[f.key]===undefined && f.keys.some(k=>low.includes(k))) map[f.key]=i; });
+  });
+  return map;
+}
+function parseVisitsText(text){
+  text=(text||"").trim();
+  if(!text) return {map:{},rows:[]};
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return {map:{},rows:[]};
+  const hdrIdx=findHeaderRow(lines);
+  const map=mapHeaders(splitCells(lines[hdrIdx]));
+  const rows=[];
+  for(let i=hdrIdx+1;i<lines.length;i++){
+    const cells=splitCells(lines[i]);
+    const dateRaw  = map.date!=null ? (cells[map.date]||"").trim() : "";
+    const timeRaw  = map.start!=null ? (cells[map.start]||"").trim() : "";
+    const endColRaw= map.end!=null  ? (cells[map.end]||"").trim()  : "";
+    const d = viDatePart(dateRaw);
+    const tr = splitTimeRange(timeRaw);
+    let startFull="", endFull="";
+    if(d && tr.start) startFull = d+"T"+tr.start;
+    else if(d) startFull = d+"T00:00";
+    else if(tr.start) startFull = normalizeDT(timeRaw);
+    if(endColRaw) endFull = normalizeDT(endColRaw);
+    else if(d && tr.end) endFull = d+"T"+tr.end;
+    else if(startFull) endFull = startFull;
+    const rec={
+      name: map.name!=null?(cells[map.name]||"").trim():"",
+      hosp: map.hosp!=null?(cells[map.hosp]||"").trim():"",
+      startRaw: startFull, endRaw: endFull,
+      symp: map.symp!=null?(cells[map.symp]||"").trim():"",
+      amtRaw: map.amt!=null?(cells[map.amt]||"").trim():""
+    };
+    rec.start=normalizeDT(rec.startRaw);
+    rec.end=normalizeDT(rec.endRaw) || rec.start;
+    rec.amt=(rec.amtRaw||"").replace(/[¥￥$\s,]/g,"");
+    rec.errors=[];
+    if(!rec.name) rec.errors.push("姓名");
+    if(!rec.hosp) rec.errors.push("医院");
+    if(!rec.start) rec.errors.push("开始时间");
+    if(!rec.symp) rec.errors.push("症状");
+    if(rec.amt===""||isNaN(Number(rec.amt))) rec.errors.push("金额");
+    rows.push(rec);
+  }
+  return {map,rows};
+}
+let pendingVisits=null;
+function previewImportVisits(){
+  const text=document.getElementById("vi-text").value;
+  const {map,rows}=parseVisitsText(text);
+  if(!rows.length){ showModal({title:"⚠️ 没有可解析的数据", html:"请先粘贴或导入出诊表（至少含表头 + 1 行数据）。"}); return; }
+  const miss=VI_FIELDS.filter(f=>f.key!=="end" && map[f.key]==null).map(f=>f.label);
+  const valid=rows.filter(r=>!r.errors.length), invalid=rows.filter(r=>r.errors.length);
+  let html="<div class='muted'>列识别："+VI_FIELDS.map(f=> f.label+(map[f.key]!=null?" ✔":" ✘")).join("　")+"</div>";
+  if(miss.length) html+="<div style='color:var(--red);margin:6px 0'>⚠️ 未识别列："+miss.join("、")+"（对应字段将留空）</div>";
+  html+="<div style='margin:8px 0'>共解析 <b>"+rows.length+"</b> 条 · 可导入 <b style='color:var(--green)'>"+valid.length+"</b> 条 · 跳过 <b style='color:var(--red)'>"+invalid.length+"</b> 条（必填缺失）</div>";
+  html+="<div style='max-height:42vh;overflow:auto'><table style='width:100%;font-size:12px;border-collapse:collapse'><thead><tr style='text-align:left'><th>姓名</th><th>医院</th><th>开始</th><th>结束</th><th>症状</th><th>金额</th><th>状态</th></tr></thead><tbody>";
+  rows.slice(0,50).forEach(r=>{
+    const ok=!r.errors.length;
+    html+="<tr"+(ok?"":" style='color:var(--red)'")+"><td>"+esc(r.name||"—")+"</td><td>"+esc(r.hosp||"—")+"</td><td>"+esc(r.start||"—")+"</td><td>"+esc(r.end||"—")+"</td><td>"+esc(r.symp||"—")+"</td><td>"+esc(r.amt||"—")+"</td><td>"+(ok?"✔":("缺"+r.errors.join("/")))+"</td></tr>";
+  });
+  html+="</tbody></table></div>";
+  if(rows.length>50) html+="<div class='muted'>（仅预览前 50 条）</div>";
+  pendingVisits=valid;
+  const btns=[];
+  if(valid.length) btns.push({label:"✅ 确认导入 "+valid.length+" 条",cls:"btn-p",onClick:()=>{confirmImportVisits();return false;}});
+  btns.push({label:"取消"});
+  showModal({title:"📥 导入预览", html, buttons:btns});
+}
+function confirmImportVisits(){
+  if(!pendingVisits||!pendingVisits.length){ toast("没有可导入的记录"); return; }
+  let okCount=0,failCount=0;
+  pendingVisits.forEach(r=>{
+    try{ addVisitRecord({name:r.name,hosp:r.hosp,startTime:r.start,endTime:r.end,symp:r.symp,amt:r.amt}); okCount++; }
+    catch(e){ failCount++; }
+  });
+  pendingVisits=null;
+  renderDB(); refreshDatalist(); updateBadges();
+  toast("已导入 "+okCount+" 条出诊记录"+(failCount?("，"+failCount+" 条失败"):""));
+}
+function clearImportVisits(){ document.getElementById("vi-text").value=""; pendingVisits=null; toast("已清空"); }
 function previewCalc(){
   const t = document.getElementById("f-start").value;
   const n = document.getElementById("f-name").value.trim();
@@ -910,8 +1094,8 @@ function editVisit(id){
     <div class="grid g3">
       <div><label class="fl"><b>*</b> 病人姓名</label><input id="fv-name" list="dl-patients" value="${esc(v.name)}"></div>
       <div><label class="fl"><b>*</b> 就诊医院</label><input id="fv-hosp" value="${esc(v.hosp)}"></div>
-      <div><label class="fl"><b>*</b> 开始时间</label><input id="fv-start" type="datetime-local" value="${esc((v.startTime||"").slice(0,16))}"></div>
-      <div><label class="fl"><b>*</b> 截至时间</label><input id="fv-end" type="datetime-local" value="${esc((v.endTime||"").slice(0,16))}"></div>
+      <div class="dt-col"><label class="fl"><b>*</b> 开始时间</label><input id="fv-start" type="datetime-local" value="${esc((v.startTime||"").slice(0,16))}"></div>
+      <div class="dt-col"><label class="fl"><b>*</b> 截至时间</label><input id="fv-end" type="datetime-local" value="${esc((v.endTime||"").slice(0,16))}"></div>
       <div><label class="fl"><b>*</b> 就诊症状</label><input id="fv-symp" value="${esc(v.symp)}"></div>
       <div><label class="fl"><b>*</b> 就诊金额（元）</label><input id="fv-amt" type="number" min="0" step="0.01" value="${v.amt}"></div>
     </div>`,
@@ -1583,17 +1767,12 @@ function renderGlobal(){
     + gbStat("待核对保险对账", reconPending+" 笔", reconPending?"var(--red)":"var(--ink)")
     + gbStat("即将到期保险档案", insExpiring+" 人", insExpiring?"var(--amber)":"var(--ink)")
     + gbStat(curMk+" 兼职补贴总额", "¥"+money(curSubsidy), "var(--purple)");
-  const m2Stats = gbStat("实时 USD→CNY", Number(fx.usd).toFixed(4), "var(--blue)")
-    + gbStat("实时 GBP→CNY", Number(fx.gbp).toFixed(4), "var(--green)")
-    + gbStat("实时 EUR→CNY", Number(fx.eur).toFixed(4), "var(--amber)")
-    + gbStat(curMk+" 平均USD", avg("usd")!=null?Number(avg("usd")).toFixed(4):"—", "var(--ink)")
-    + gbStat(curMk+" 平均GBP", avg("gbp")!=null?Number(avg("gbp")).toFixed(4):"—", "var(--ink)")
-    + gbStat(curMk+" 平均EUR", avg("eur")!=null?Number(avg("eur")).toFixed(4):"—", "var(--ink)")
-    + gbStat("在途 FBA 货件", inTransit+" 批", "var(--ink)")
+  const m2Stats = gbStat("在途 FBA 货件", inTransit+" 批", "var(--ink)")
     + gbStat("待确认时效货件", shipPending+" 批", shipPending?"var(--red)":"var(--ink)")
     + gbStat(curMk+" 货代总运费", "¥"+money(curShipFreight), "var(--amber)")
     + gbStat("即将到期优惠券", cpExpiring+" 张", cpExpiring?"var(--red)":"var(--ink)")
-    + gbStat("月度报表上传", amzReady?"<span style='color:var(--green)'>已就绪</span>":"<span style='color:var(--amber)'>待上传</span>", "var(--ink)");
+    + gbStat("月度报表上传", amzReady?"<span style='color:var(--green)'>已就绪</span>":"<span style='color:var(--amber)'>待上传</span>", "var(--ink)")
+    + '<div class="gb-clock"><div class="clock-grid" id="global-clock-grid"></div></div>';
   const highTag = highs.length ? '<div class="gb-high">⚡ 汇率高点：'+highs.join("、")+'，建议评估提现</div>' : '';
   const board1 = '<div class="gb-grid">'+gbBlock("🩺 我是一枚翻译（翻译业务）", '<span class="tag tag-a">翻译业务</span>', m1Stats)+gbBlock("🌐 我是一枚外贸人（亚马逊外贸）", '<span class="tag tag-b">亚马逊外贸</span>'+highTag, m2Stats)+'</div>';
   const todos = [];
@@ -1616,6 +1795,7 @@ function renderGlobal(){
     '<div class="gb-section"><h3 class="gb-h">📊 板块 1 · 全局数据汇总看板</h3>'+board1+'</div>'
     + '<div class="gb-section"><h3 class="gb-h">✅ 板块 2 · 全局待办清单（'+todos.length+'）</h3>'+renderGbList(todos,"待办")+'</div>'
     + '<div class="gb-section"><h3 class="gb-h">🔔 板块 3 · 全局待确认清单（'+confirms.length+'）</h3>'+renderGbList(confirms,"待确认")+'</div>';
+  renderGlobalClocks();
 }
 /* ---- 分区1：世界时钟 ---- */
 const TZS = [
@@ -1639,7 +1819,8 @@ function renderWorldClock(){
   if(!grid) return;
   grid.innerHTML = TZS.map(t=>`<div class="clock-card" id="clk-${t.key}">
     <div class="city">${t.city}</div>
-    <div class="time" id="clk-t-${t.key}">--:--:--</div>
+    <div class="time" id="clk-t-${t.key}">--:--</div>
+    <div class="sec" id="clk-s-${t.key}">:--</div>
     <div class="date" id="clk-d-${t.key}"></div>
     <div class="daynight" id="clk-n-${t.key}"></div>
   </div>`).join("");
@@ -1651,12 +1832,46 @@ function tickClocks(){
   TZS.forEach(t=>{
     const tt = document.getElementById("clk-t-"+t.key);
     if(!tt) return;
-    tt.textContent = fmtTZ(now, t.tz);
+    const tStr = fmtTZ(now, t.tz); // "HH:MM:SS"
+    tt.textContent = tStr.slice(0,5); // "HH:MM"
+    const secEl = document.getElementById("clk-s-"+t.key);
+    if(secEl) secEl.textContent = tStr.slice(5); // ":SS"
     document.getElementById("clk-d-"+t.key).textContent = fmtTZdate(now, t.tz);
     const night = isNight(now, t.tz);
     const tn = document.getElementById("clk-n-"+t.key);
     tn.textContent = night ? "🌙 夜间" : "☀️ 白天";
     tn.className = "daynight " + (night ? "dn-night" : "dn-day");
+  });
+}
+
+let _globalClockTimer = null;
+function renderGlobalClocks(){
+  const grid = document.getElementById("global-clock-grid");
+  if(!grid) return;
+  grid.innerHTML = TZS.map(t=>`<div class="clock-card" id="gclk-${t.key}">
+    <div class="city">${t.city}</div>
+    <div class="time" id="gclk-t-${t.key}">--:--</div>
+    <div class="sec" id="gclk-s-${t.key}">:--</div>
+    <div class="date" id="gclk-d-${t.key}"></div>
+    <div class="daynight" id="gclk-n-${t.key}"></div>
+  </div>`).join("");
+  tickGlobalClocks();
+  if(!_globalClockTimer) _globalClockTimer = setInterval(tickGlobalClocks, 1000);
+}
+function tickGlobalClocks(){
+  const now = new Date();
+  TZS.forEach(t=>{
+    const tt = document.getElementById("gclk-t-"+t.key);
+    if(!tt) return;
+    const tStr = fmtTZ(now, t.tz);
+    tt.textContent = tStr.slice(0,5);
+    const secEl = document.getElementById("gclk-s-"+t.key);
+    if(secEl) secEl.textContent = tStr.slice(5);
+    const de = document.getElementById("gclk-d-"+t.key);
+    if(de) de.textContent = fmtTZdate(now, t.tz);
+    const night = isNight(now, t.tz);
+    const tn = document.getElementById("gclk-n-"+t.key);
+    if(tn){ tn.textContent = night ? "🌙 夜间" : "☀️ 白天"; tn.className = "daynight " + (night ? "dn-night" : "dn-day"); }
   });
 }
 
@@ -1816,6 +2031,59 @@ function saveAmazonData(){
     other:document.getElementById("am-other").value
   });
   renderAmazon(); toast(mk+" 数据已保存 ✔");
+}
+
+/* ---- 分区3：文件导入 + 自动解析金额 ---- */
+const AM_PARSE_MAP = [
+  {id:"am-rev",    keys:["总销售额","销售额","商品销售","订单商品小计","product sales","sales"]},
+  {id:"am-orders", keys:["订单数","订单总数","订单量","number of orders","orders"]},
+  {id:"am-refund", keys:["退款","退货","refund"]},
+  {id:"am-fba",    keys:["配送费","运费","fba","shipping","fulfillment"]},
+  {id:"am-comm",   keys:["销售佣金","佣金","referral","commission"]},
+  {id:"am-ads",    keys:["广告费","广告","广告花费","sponsored","advertising","ads"]},
+  {id:"am-other",  keys:["其他费用","其他","other"]}
+];
+function importFileTo(input, targetId){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById(targetId).value = (e.target.result||"").trim();
+    toast("已导入：" + file.name + " ✔");
+  };
+  reader.onerror = () => toast("文件读取失败");
+  reader.readAsText(file, "utf-8");
+  input.value = "";
+}
+function extractAmount(text, keys){
+  if(!text) return null;
+  const lines = text.split(/\r?\n/);
+  for(const line of lines){
+    if(keys.some(k=>line.toLowerCase().includes(k.toLowerCase()))){
+      const m = line.match(/[\(]?[-+]?[\d,]+(\.\d+)?[\)]?/);
+      if(m){
+        let num = m[0].replace(/,/g,"");
+        let neg = false;
+        if(num.startsWith("(") && num.endsWith(")")){ neg=true; num=num.slice(1,-1); }
+        const v = parseFloat(num);
+        return isNaN(v) ? null : (neg ? -v : v);
+      }
+    }
+  }
+  return null;
+}
+function autoParseAmounts(){
+  const src = (document.getElementById("am-summary").value||"") + "\n" + (document.getElementById("am-detail").value||"");
+  if(!src.trim()){ toast("请先粘贴或导入交易汇总表 / 订单明细"); return; }
+  let filled=0, miss=[];
+  AM_PARSE_MAP.forEach(f=>{
+    const v = extractAmount(src, f.keys);
+    if(v!==null){
+      document.getElementById(f.id).value = (v<0 ? -v : v);
+      filled++;
+    } else miss.push(f.id);
+  });
+  toast("已自动填充 "+filled+" 项" + (miss.length ? "（"+miss.length+" 项未识别，请手填）" : ""));
 }
 function amazonComplete(mk){
   const d = S.m2.amazon.data[mk];
