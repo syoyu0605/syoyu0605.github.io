@@ -177,6 +177,8 @@
   #toast{bottom:auto;top:14px;max-width:90vw;text-align:center;}
   input,select,textarea{font-size:16px;} /* iOS 聚焦防自动放大 */
 }
+  .c-ok{color:var(--green);font-weight:600;}
+  .c-err{color:var(--red);font-weight:600;}
 </style>
 </head>
 <body>
@@ -455,6 +457,21 @@
         </div>
         <div class="muted" style="margin-top:8px">数据保存在本浏览器 localStorage 中，换电脑/换浏览器前请先导出备份。</div>
       </div>
+      <div class="card">
+        <h3>☁️ 云同步（手机 ↔ 电脑 共享数据）</h3>
+        <div class="muted" style="margin-bottom:10px">把数据存到你的 Supabase 数据库，手机和电脑打开同一网址即自动同步。只需配置一次。</div>
+        <div class="grid g2">
+          <div><label class="fl">Supabase 项目 URL</label><input id="cloud-url" placeholder="https://xxxx.supabase.co" style="width:100%"></div>
+          <div><label class="fl">anon key（公开安全）</label><input id="cloud-anon" placeholder="eyJhbGciOi..." style="width:100%"></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-p" onclick="saveCloudCfg()">保存并连接测试</button>
+          <button class="btn btn-g" onclick="manualSync()">立即同步</button>
+          <button class="btn" onclick="clearCloudCfg()">清除配置</button>
+        </div>
+        <div id="cloud-status" class="muted" style="margin-top:8px">未配置</div>
+        <div class="muted" style="margin-top:8px">① 注册 supabase.com 免费项目 → ② 在 SQL 编辑器运行我给你的建表语句 → ③ 复制 Project URL 与 anon key 填上方并保存 → 手机与电脑填同一组即可同步。anon key 相当于你的“数据库钥匙”，不要公开分享。</div>
+      </div>
     </div>
   </div><!-- /mod1-main -->
   <div id="mod2-main" style="display:none">
@@ -681,7 +698,7 @@ function migrate(d){
   d.m2.auto = d.m2.auto || { amazonRemind:{}, genDone:{}, fxHigh:{} };
   return d;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); scheduleCloudPush(); }
 
 /* ==================== 工具 ==================== */
 const pad = n => String(n).padStart(2,"0");
@@ -1549,6 +1566,7 @@ function viewSettle(mk){
 function renderCfg(){
   document.getElementById("cfg-holidays").value = S.cfg.holidays.join("\n");
   document.getElementById("cfg-workdays").value = S.cfg.workdays.join("\n");
+  renderCloudCfg();
 }
 function parseDates(txt){ return txt.split(/\n+/).map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s)); }
 function saveCfg(){
@@ -1573,6 +1591,83 @@ function importJSON(input){
 function wipeAll(){
   showModal({title:"⚠️ 危险操作", html:"<b style='color:var(--red)'>将清空全部出诊记录、患者档案、报表与对账数据，不可恢复！</b><br>建议先导出JSON备份。",
     buttons:[{label:"取消"},{label:"我已备份，确认清空",cls:"btn-r",onClick:()=>{localStorage.removeItem(KEY);location.reload();}}]});
+}
+
+/* ==================== 云同步（Supabase） ==================== */
+const CLOUD_KEY = "syoyu_cloud_v1";
+const SYNC_META_KEY = "syoyu_sync_meta";
+let _suppressPush = false;
+let _pushTimer = null;
+function cloudCfg(){ try{ const c=JSON.parse(localStorage.getItem(CLOUD_KEY)||"null"); if(c&&c.url&&c.anon) return c; }catch(e){} return null; }
+function syncMeta(){ try{ return JSON.parse(localStorage.getItem(SYNC_META_KEY)||"{}"); }catch(e){ return {}; } }
+function cloudHeaders(cfg){ return { "apikey":cfg.anon, "Authorization":"Bearer "+cfg.anon, "Content-Type":"application/json" }; }
+function setCloudStatus(msg,type){ const el=document.getElementById("cloud-status"); if(!el) return; el.textContent=msg; el.className="muted "+(type==="ok"?"c-ok":type==="err"?"c-err":""); }
+function scheduleCloudPush(){
+  const cfg=cloudCfg(); if(!cfg||_suppressPush) return;
+  clearTimeout(_pushTimer); _pushTimer=setTimeout(cloudPush,1200);
+}
+async function cloudPush(){
+  const cfg=cloudCfg(); if(!cfg) return;
+  const body=JSON.stringify({ id:1, data:S, updated_at:new Date().toISOString() });
+  try{
+    const r=await fetch(cfg.url.replace(/\/$/,"")+"/rest/v1/wb_sync",{
+      method:"POST",
+      headers:Object.assign({"Prefer":"resolution=merge-duplicates, return=minimal"}, cloudHeaders(cfg)),
+      body
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const m=syncMeta(); m.lastPush=new Date().toISOString(); localStorage.setItem(SYNC_META_KEY,JSON.stringify(m));
+    setCloudStatus("已同步到云端 ☁️ "+new Date().toLocaleTimeString(), "ok");
+  }catch(e){ setCloudStatus("同步失败（可能离线）⚠️", "err"); }
+}
+async function cloudPull(){
+  const cfg=cloudCfg(); if(!cfg) return;
+  try{
+    const r=await fetch(cfg.url.replace(/\/$/,"")+"/rest/v1/wb_sync?id=eq.1&select=data,updated_at",{ headers:cloudHeaders(cfg) });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const rows=await r.json();
+    if(!rows||!rows.length) return;
+    const remote=rows[0];
+    const meta=syncMeta();
+    const remoteTime=new Date(remote.updated_at).getTime();
+    const localPush=meta.lastPush?new Date(meta.lastPush).getTime():0;
+    if(remoteTime>localPush){
+      _suppressPush=true;
+      S=migrate(remote.data||{});
+      localStorage.setItem(KEY,JSON.stringify(S));
+      meta.lastPull=new Date().toISOString(); meta.lastPush=remote.updated_at; localStorage.setItem(SYNC_META_KEY,JSON.stringify(meta));
+      _suppressPush=false;
+      setCloudStatus("已从云端拉取最新 ☁️", "ok");
+      setTimeout(()=>location.reload(),300);
+    } else {
+      setCloudStatus("本地已是最新 ☁️", "ok");
+    }
+  }catch(e){ setCloudStatus("拉取失败（可能离线）⚠️", "err"); }
+}
+function renderCloudCfg(){
+  const c=cloudCfg()||{};
+  const u=document.getElementById("cloud-url"),a=document.getElementById("cloud-anon");
+  if(u)u.value=c.url||""; if(a)a.value=c.anon||"";
+  setCloudStatus(cloudCfg()?"已配置，可点「立即同步」":"未配置", cloudCfg()?"ok":"");
+}
+async function saveCloudCfg(){
+  const url=document.getElementById("cloud-url").value.trim();
+  const anon=document.getElementById("cloud-anon").value.trim();
+  if(!url||!anon){ toast("请填写项目 URL 和 anon key"); return; }
+  localStorage.setItem(CLOUD_KEY, JSON.stringify({url,anon}));
+  toast("云同步配置已保存 ✔ 正在连接测试…");
+  try{
+    await cloudPush();
+    setTimeout(cloudPull,800);
+  }catch(e){ setCloudStatus("连接测试失败："+e.message, "err"); }
+}
+function manualSync(){ if(!cloudCfg()){ toast("请先配置云同步"); return; } cloudPush(); setTimeout(cloudPull,1300); }
+function clearCloudCfg(){
+  localStorage.removeItem(CLOUD_KEY); localStorage.removeItem(SYNC_META_KEY);
+  setCloudStatus("已清除配置","");
+  const u=document.getElementById("cloud-url"),a=document.getElementById("cloud-anon");
+  if(u)u.value=""; if(a)a.value="";
+  toast("云同步配置已清除");
 }
 
 /* ==================== 自动化引擎（4套工作流） ==================== */
@@ -2363,6 +2458,7 @@ renderReports();
 renderSubsidy();
 updateBadges();
 setTimeout(runAutomations, 600);        // 打开即检查（含补跑）
+setTimeout(cloudPull, 800);             // 打开即从云端拉取最新（如已配置）
 setInterval(runAutomations, 60*1000);   // 每分钟检查触发点
 setInterval(updateBadges, 60*1000);
 setInterval(renderGlobalIfHome, 60*1000);
